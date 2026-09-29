@@ -1,0 +1,15 @@
+# ModelSim generated files
+work/
+*.wlf
+*.mpf
+*.mti
+*.cr.mti
+transcript
+
+# Backup files
+*.bak
+
+# Quartus generated files
+db/
+incremental_db/
+*.qws
