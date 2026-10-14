@@ -343,7 +343,7 @@ module imm_gen_tb;
 
         #10;
 
-        $stop;
+        $finish;
 
     end
 

@@ -218,7 +218,7 @@ module register_file_tb;
 
         #10;
 
-        $stop;
+        $finish;
 
     end
 
