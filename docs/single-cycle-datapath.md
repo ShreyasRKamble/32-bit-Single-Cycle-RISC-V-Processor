@@ -12,9 +12,11 @@ any register-file or data-memory write.
  └──── branch / jump target ◄──────┘             └─ writeback┘
 ```
 
-Supported instruction groups are integer register and immediate operations,
-`LW`/`SW`, conditional branches, `JAL`/`JALR`, `LUI`, and `AUIPC`. The current
-memory interface intentionally supports aligned word loads and stores only.
+Supported instruction groups are the RV32I integer register and immediate
+operations, `LB`/`LH`/`LW`/`LBU`/`LHU`, `SB`/`SH`/`SW`, conditional branches,
+`JAL`/`JALR`, `LUI`, and `AUIPC`. Byte accesses support every byte offset;
+halfword accesses require even addresses and word accesses require four-byte
+alignment. Misaligned accesses are ignored because this core has no trap path.
 
 ## Hookup
 

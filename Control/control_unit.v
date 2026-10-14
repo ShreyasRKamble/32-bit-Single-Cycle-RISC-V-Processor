@@ -147,9 +147,11 @@ module control_unit (
                 endcase
             end
 
-            // Loads and stores use the ALU to form an address.
+            // RV32I byte, halfword, and word loads/stores.
             7'b0000011: begin
-                if (funct3 == 3'b010) begin // LW
+                if (funct3 == 3'b000 || funct3 == 3'b001 ||
+                    funct3 == 3'b010 || funct3 == 3'b100 ||
+                    funct3 == 3'b101) begin
                     reg_write = 1'b1;
                     mem_read = 1'b1;
                     mem_to_reg = 1'b1;
@@ -158,7 +160,8 @@ module control_unit (
                 end else illegal_instruction = 1'b1;
             end
             7'b0100011: begin
-                if (funct3 == 3'b010) begin // SW
+                if (funct3 == 3'b000 || funct3 == 3'b001 ||
+                    funct3 == 3'b010) begin
                     mem_write = 1'b1;
                     alu_src = 1'b1;
                 end else illegal_instruction = 1'b1;

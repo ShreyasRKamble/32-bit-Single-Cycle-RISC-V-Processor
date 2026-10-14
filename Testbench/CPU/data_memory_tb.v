@@ -5,6 +5,7 @@ module data_memory_tb;
     reg read_enable = 1'b0;
     reg write_enable = 1'b0;
     reg [31:0] address = 0;
+    reg [2:0] funct3 = 3'b010;
     reg [31:0] write_data = 0;
     wire [31:0] read_data;
     integer failures = 0;
@@ -13,7 +14,7 @@ module data_memory_tb;
 
     data_memory #(.DEPTH(4)) dut (
         .clk(clk), .read_enable(read_enable), .write_enable(write_enable),
-        .address(address), .write_data(write_data), .read_data(read_data)
+        .address(address), .funct3(funct3), .write_data(write_data), .read_data(read_data)
     );
 
     task check;
@@ -38,17 +39,34 @@ module data_memory_tb;
         @(posedge clk); #1; write_enable = 0; read_enable = 1;
         check(32'hdeed_beef, "write/read word one");
 
-        // Writes to unaligned and out-of-range addresses must not corrupt RAM.
-        @(negedge clk); address = 6; write_data = 32'h1234_5678; write_enable = 1;
+        // Byte and halfword stores update only their addressed lanes.
+        @(negedge clk); address = 5; funct3 = 3'b000; write_data = 32'h0000_00aa; write_enable = 1;
+        @(posedge clk); #1; write_enable = 0; funct3 = 3'b100; read_enable = 1;
+        check(32'h0000_00aa, "unsigned byte load from lane one");
+        funct3 = 3'b000;
+        check(32'hffff_ffaa, "signed byte load from lane one");
+        @(negedge clk); address = 6; funct3 = 3'b001; write_data = 32'h0000_8123; write_enable = 1;
+        @(posedge clk); #1; write_enable = 0; funct3 = 3'b101; read_enable = 1;
+        check(32'h0000_8123, "unsigned halfword load");
+        funct3 = 3'b001;
+        check(32'hffff_8123, "signed halfword load");
+
+        funct3 = 3'b001; address = 5;
+        check(0, "misaligned halfword load ignored");
+        funct3 = 3'b010; address = 6;
+        check(0, "misaligned word load ignored");
+
+        // Misaligned word and out-of-range accesses must not corrupt RAM.
+        @(negedge clk); address = 6; funct3 = 3'b010; write_data = 32'h1234_5678; write_enable = 1;
         @(posedge clk); #1; write_enable = 0; address = 4;
-        check(32'hdeed_beef, "unaligned write ignored");
+        check(32'h8123_aaef, "unaligned write ignored");
         @(negedge clk); address = 16; write_enable = 1; write_data = 32'hffff_ffff;
         @(posedge clk); #1; write_enable = 0; read_enable = 1;
         check(0, "out-of-range read returns zero");
 
         read_enable = 0;
         check(0, "disabled read returns zero");
-        if (dut.memory[1] !== 32'hdeed_beef) begin
+        if (dut.memory[1] !== 32'h8123_aaef) begin
             $display("FAIL memory word one changed unexpectedly: %08h", dut.memory[1]);
             failures = failures + 1;
         end

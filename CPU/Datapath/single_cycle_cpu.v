@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-// Complete single-cycle RV32I datapath (R/I arithmetic, LW/SW, branches,
+// Complete single-cycle RV32I datapath (R/I arithmetic, byte/half/word memory,
 // JAL/JALR, LUI and AUIPC). Each instruction retires on one rising edge.
 module single_cycle_cpu #(
     parameter integer IMEM_DEPTH = 256,
@@ -24,11 +24,18 @@ module single_cycle_cpu #(
     wire [1:0] alu_unit_sel, writeback_sel;
     wire [3:0] alu_func_sel;
     wire [31:0] rs1_value, rs2_value, alu_a, alu_b;
+    wire memory_access_aligned;
     wire [4:0] alu_shift_amt;
     wire [31:0] alu_result, memory_data, writeback_data;
     wire alu_zero, alu_negative, alu_overflow, alu_cout;
     wire branch_taken = branch && (alu_result[0] == 1'b1);
     wire jalr = (instruction[6:0] == 7'b1100111);
+    assign memory_access_aligned = (instruction[14:12] == 3'b000 ||
+                                    instruction[14:12] == 3'b100) ? 1'b1 :
+                                   (instruction[14:12] == 3'b001 ||
+                                    instruction[14:12] == 3'b101) ? !alu_result[0] :
+                                   (instruction[14:12] == 3'b010) ?
+                                       (alu_result[1:0] == 2'b00) : 1'b0;
 
     program_counter u_pc (
         .clk(clk), .reset(reset), .enable(enable),
@@ -53,7 +60,9 @@ module single_cycle_cpu #(
     imm_gen u_imm_gen (.instruction(instruction), .immediate(immediate));
 
     register_file u_register_file (
-        .clk(clk), .rst(reset), .reg_write(reg_write && enable),
+        .clk(clk), .rst(reset),
+        .reg_write(reg_write && enable &&
+                   (!(mem_read || mem_write) || memory_access_aligned)),
         .rs1(instruction[19:15]), .rs2(instruction[24:20]),
         .rd(instruction[11:7]), .write_data(writeback_data),
         .read_data1(rs1_value), .read_data2(rs2_value)
@@ -72,12 +81,16 @@ module single_cycle_cpu #(
     );
 
     data_memory #(.DEPTH(DMEM_DEPTH), .INIT_FILE(DMEM_INIT_FILE)) u_dmem (
-        .clk(clk), .read_enable(mem_read), .write_enable(mem_write && enable),
-        .address(alu_result), .write_data(rs2_value), .read_data(memory_data)
+        .clk(clk), .read_enable(mem_read && memory_access_aligned),
+        .write_enable(mem_write && enable && memory_access_aligned),
+        .address(alu_result), .funct3(instruction[14:12]),
+        .write_data(rs2_value), .read_data(memory_data)
     );
 
     // Compare results are Boolean words, so bit zero drives all branch types.
     assign writeback_data = (writeback_sel == 2'b01) ? memory_data :
                             (writeback_sel == 2'b10) ? pc_plus_4 :
                             (writeback_sel == 2'b11) ? immediate : alu_result;
+
+    // With no trap path, misaligned memory operations are ignored.
 endmodule

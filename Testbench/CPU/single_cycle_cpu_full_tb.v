@@ -155,9 +155,9 @@ module single_cycle_cpu_full_tb;
         load_word(132, enc_j(21'd8, 11));                         // jal x11,+8 -> 140
         load_word(136, enc_i(12'd95, 0, 0, 16, 7'b0010011));     // skipped
         load_word(140, enc_i(12'd21, 0, 0, 21, 7'b0010011));    // executes
-        load_word(144, enc_i(12'd153, 0, 0, 15, 7'b0010011));   // odd target
-        load_word(148, enc_i(12'd0, 15, 0, 14, 7'b1100111));    // jalr -> 152
-        load_word(152, enc_i(12'd22, 0, 0, 22, 7'b0010011));    // executes
+        load_word(144, enc_i(12'd149, 0, 0, 15, 7'b0010011));   // odd base
+        load_word(148, enc_i(12'd7, 15, 0, 14, 7'b1100111));    // jalr -> 156 (149+7, clear bit 0)
+        load_word(152, enc_i(12'd22, 0, 0, 22, 7'b0010011));    // skipped by JALR
         load_word(156, enc_j(21'd8, 23));                        // jal x23,+8 -> 164
         load_word(160, enc_i(12'd94, 0, 0, 24, 7'b0010011));   // skipped
         load_word(164, 32'hffff_ffff);                           // illegal, no state write
@@ -202,14 +202,14 @@ module single_cycle_cpu_full_tb;
         check_reg(10, 32'h1234_5000);
         check_reg(11, 32'd136);
         check_reg(14, 32'd152);
-        check_reg(15, 32'd153);
+        check_reg(15, 32'd149);
         check_reg(16, 0);
         check_reg(17, 17);
         check_reg(18, 18);
         check_reg(19, 19);
         check_reg(20, 20);
         check_reg(21, 21);
-        check_reg(22, 22);
+        check_reg(22, 0);
         check_reg(23, 32'd160);
         check_reg(25, 32'hffff_fffe);
         check_reg(26, 1);
