@@ -5,6 +5,11 @@ work/
 *.mti
 *.cr.mti
 transcript
+*.qdb
+*.qpg
+*.qtl
+*.mpf
+*.wlf
 
 # Backup files
 *.bak
